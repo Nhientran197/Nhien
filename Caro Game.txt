@@ -1,0 +1,527 @@
+# -*- coding: utf-8 -*-
+"""
+Spyder Editor
+
+This is a temporary script file.
+"""
+
+import turtle
+from enum import Enum
+import numpy as np
+
+"""BLUE MAX - RED MIN"""
+"""CHESS = Enum('BLANK', 'MAX', 'MIN')"""
+
+class CHESS(Enum):
+    BLANK = 'BLANK'
+    MAX = 'MAX'
+    MIN = 'MIN'
+    
+class CaroAI:
+    def __init__(self, size):
+        self.board = np.full((size + 1, size + 1), CHESS.BLANK);
+        self.size = size + 1;
+            
+    def minimax(self, turn, level, move_line):
+        best_row = -1
+        best_col = -1
+        
+        if turn == CHESS.MAX:
+            best_score = -10000000000
+        else:
+            best_score = 10000000000
+        
+        kq = self.gameover(level, move_line)
+        
+        if kq != None or level == 2 or (CHESS.BLANK in self.board) == False:
+            best_score = kq
+        else:
+            moves = self.find_next_moves()
+            for move in moves:
+                self.board[move[0]][move[1]] = turn;
+                move_line.append((move[0], move[1]));
+                
+                if turn == CHESS.MAX:
+                    score, __, __ = self.minimax(CHESS.MIN, level + 1, move_line)
+                    if score > best_score:
+                        best_score = score
+                        best_row = move[0]
+                        best_col = move[1]
+                elif turn == CHESS.MIN:
+                    score, __, __ = self.minimax(CHESS.MAX, level + 1, move_line)
+                    if score < best_score:
+                        best_score = score
+                        best_row = move[0]
+                        best_col = move[1]
+                
+                if(level == 0):
+                    print(str(score) + " -- " + str(move[0]) + " -- " + str(move[1]) + 
+                          " -- " + str(level) + " -- " + str(turn)  + " -- " + str(move_line))
+                
+                move_line.pop(len(move_line) - 1);
+                self.board[move[0]][move[1]] = CHESS.BLANK     
+         
+        return (best_score, best_row, best_col)
+        
+    def find_next_moves(self):
+        moves = []
+        for row in range(0, self.size):
+            for cell in range(0, self.size):
+                if(self.board[row][cell] == CHESS.BLANK):
+                    moves.append([row, cell])
+                    
+        return moves
+    
+    def gameover(self, level, move_line):
+        score = 0
+        for row in range(0, self.size-4):
+            for col in range(0, self.size-4):
+                board_group = self.board[row:(row + 5), col:(col + 5)]
+                
+                if(self.checkWin_5pixel(board_group, CHESS.MAX) == True):
+                    return (100000000 - level * 1)
+                if(self.checkWin_5pixel(board_group, CHESS.MIN) == True):
+                    return (-100000000 + level * 1)
+                
+                if(level == 2):
+                    for i in range(5):
+                        score = score + self.evaler_Row(i, board_group)
+                        
+                    for i in range(5):
+                        score = score + self.evaler_Col(i, board_group)
+                    
+                    score = score + self.evaler_L_Cross(board_group)
+                        
+                    score = score + self.evaler_R_Cross(board_group)
+                        
+                   
+        if(level == 2):
+            return score
+        else:
+            return None
+    
+    def checkWin_5pixel(self, board, keyTurn):
+        bitarr = 0
+        winPatten = [17043521, 1118480, 17318416, 8659208, 4329604, 2164802, 1082401, 
+                     32505856, 1015808, 31744, 992, 31]
+       
+        for i in range(0, 5):
+            for j in range(0, 5):
+                if(board[i][j] == keyTurn):
+                    pos = 24 - (5*i + j);
+                    bitarr = (1 << pos) | bitarr
+            
+        isWin = False;
+        for item in winPatten:
+            if(bitarr & item == item):
+                isWin = True
+            
+        return isWin
+    
+    def evaler_Row(self, row, board_group):
+        
+        point = 0
+        
+        if (board_group[row][0] == CHESS.MAX):
+            point = 1
+        elif (board_group[row][0] == CHESS.MIN):
+            point = -1
+ 
+        if (board_group[row][1] == CHESS.MAX):
+            if (point == 1):
+                point = 5
+            elif (point == -1):
+                return 0
+            else:
+                point = 1
+ 
+        elif(board_group[row][1] == CHESS.MIN):
+            if (point == -1):
+                point = -5
+            elif(point == 1):
+                return 0
+            else:
+                point = -1
+ 
+        if (board_group[row][2] == CHESS.MAX):
+            if (point > 0):
+                point = point * 5
+            elif(point < 0):
+                return 0
+            else:
+                point = 1
+                
+        elif(board_group[row][2] == CHESS.MIN):
+            if (point < 0):
+                point = point * 5
+            elif(point > 1):
+                return 0
+            else:
+                point = -1
+                
+        if (board_group[row][3] == CHESS.MAX):
+            if (point > 0):
+                point = point * 5
+            elif(point < 0):
+                return 0
+            else:
+                point = 1
+                
+        elif(board_group[row][3] == CHESS.MIN):
+            if (point < 0):
+                point = point * 5
+            elif(point > 1):
+                return 0
+            else:
+                point = -1
+                
+        if (board_group[row][4] == CHESS.MAX):
+            if (point > 0):
+                point = point * 5
+            elif(point < 0):
+                return 0
+            else:
+                point = 1
+                
+        elif(board_group[row][4] == CHESS.MIN):
+            if (point < 0):
+                point = point * 5
+            elif(point > 1):
+                return 0
+            else:
+                point = -1
+        
+        return point
+    
+    def evaler_Col(self, col, board_group):
+        
+        point = 0
+        
+        if (board_group[0][col] == CHESS.MAX):
+            point = 1
+        elif (board_group[0][col] == CHESS.MIN):
+            point = -1
+ 
+        if (board_group[1][col] == CHESS.MAX):
+            if (point == 1):
+                point = 5
+            elif (point == -1):
+                return 0
+            else:
+                point = 1
+ 
+        elif(board_group[1][col] == CHESS.MIN):
+            if (point == -1):
+                point = -5
+            elif(point == 1):
+                return 0
+            else:
+                point = -1
+ 
+        if (board_group[2][col] == CHESS.MAX):
+            if (point > 0):
+                point = point * 5
+            elif(point < 0):
+                return 0
+            else:
+                point = 1
+                
+        elif(board_group[2][col] == CHESS.MIN):
+            if (point < 0):
+                point = point * 5
+            elif(point > 1):
+                return 0
+            else:
+                point = -1
+                
+        if (board_group[3][col] == CHESS.MAX):
+            if (point > 0):
+                point = point * 5
+            elif(point < 0):
+                return 0
+            else:
+                point = 1
+                
+        elif(board_group[3][col] == CHESS.MIN):
+            if (point < 0):
+                point = point * 5
+            elif(point > 1):
+                return 0
+            else:
+                point = -1
+                
+        if (board_group[4][col] == CHESS.MAX):
+            if (point > 0):
+                point = point * 5
+            elif(point < 0):
+                return 0
+            else:
+                point = 1
+                
+        elif(board_group[4][col] == CHESS.MIN):
+            if (point < 0):
+                point = point * 5
+            elif(point > 1):
+                return 0
+            else:
+                point = -1
+        
+        return point
+    
+    def evaler_L_Cross(self, board_group):
+        
+        point = 0
+        
+        if (board_group[0][0] == CHESS.MAX):
+            point = 1
+        elif (board_group[0][0] == CHESS.MIN):
+            point = -1
+ 
+        if (board_group[1][1] == CHESS.MAX):
+            if (point == 1):
+                point = 5
+            elif (point == -1):
+                return 0
+            else:
+                point = 1
+ 
+        elif(board_group[1][1] == CHESS.MIN):
+            if (point == -1):
+                point = -5
+            elif(point == 1):
+                return 0
+            else:
+                point = -1
+ 
+        if (board_group[2][2] == CHESS.MAX):
+            if (point > 0):
+                point = point * 5
+            elif(point < 0):
+                return 0
+            else:
+                point = 1
+                
+        elif(board_group[2][2] == CHESS.MIN):
+            if (point < 0):
+                point = point * 5
+            elif(point > 1):
+                return 0
+            else:
+                point = -1
+                
+        if (board_group[3][3] == CHESS.MAX):
+            if (point > 0):
+                point = point * 5
+            elif(point < 0):
+                return 0
+            else:
+                point = 1
+                
+        elif(board_group[3][3] == CHESS.MIN):
+            if (point < 0):
+                point = point * 5
+            elif(point > 1):
+                return 0
+            else:
+                point = -1
+                
+        if (board_group[4][4] == CHESS.MAX):
+            if (point > 0):
+                point = point * 5
+            elif(point < 0):
+                return 0
+            else:
+                point = 1
+                
+        elif(board_group[4][4] == CHESS.MIN):
+            if (point < 0):
+                point = point * 5
+            elif(point > 1):
+                return 0
+            else:
+                point = -1
+        
+        return point
+    
+    def evaler_R_Cross(self, board_group):
+        
+        point = 0
+        
+        if (board_group[4][0] == CHESS.MAX):
+            point = 1
+        elif (board_group[4][0] == CHESS.MIN):
+            point = -1
+ 
+        if (board_group[3][1] == CHESS.MAX):
+            if (point == 1):
+                point = 5
+            elif (point == -1):
+                return 0
+            else:
+                point = 1
+ 
+        elif(board_group[3][1] == CHESS.MIN):
+            if (point == -1):
+                point = -5
+            elif(point == 1):
+                return 0
+            else:
+                point = -1
+ 
+        if (board_group[2][2] == CHESS.MAX):
+            if (point > 0):
+                point = point * 5
+            elif(point < 0):
+                return 0
+            else:
+                point = 1
+                
+        elif(board_group[2][2] == CHESS.MIN):
+            if (point < 0):
+                point = point * 5
+            elif(point > 1):
+                return 0
+            else:
+                point = -1
+                
+        if (board_group[1][3] == CHESS.MAX):
+            if (point > 0):
+                point = point * 5
+            elif(point < 0):
+                return 0
+            else:
+                point = 1
+                
+        elif(board_group[1][3] == CHESS.MIN):
+            if (point < 0):
+                point = point * 5
+            elif(point > 1):
+                return 0
+            else:
+                point = -1
+                
+        if (board_group[0][4] == CHESS.MAX):
+            if (point > 0):
+                point = point * 5
+            elif(point < 0):
+                return 0
+            else:
+                point = 1
+                
+        elif(board_group[0][4] == CHESS.MIN):
+            if (point < 0):
+                point = point * 5
+            elif(point > 1):
+                return 0
+            else:
+                point = -1
+        
+        return point
+
+def findNearClickPoint(x,y):
+    nearX = round(x / sw) * sw;
+    nearY = round(y / sw) * sh;
+    return (nearX, nearY);
+
+def drawCircle(x, y, turn):
+    sk.penup()
+    
+    if(turn == CHESS.MIN):
+        sk.fillcolor('red');
+    else:
+        sk.fillcolor('blue'); 
+        
+    sk.begin_fill()
+    sk.setposition(x, (y - sw/4))
+    sk.circle(sw/4)
+    sk.end_fill()
+    sk.penup()
+
+def getPos(x, y):
+    near = findNearClickPoint(x,y)
+    if near not in used:
+        drawCircle(near[0], near[1], CHESS.MIN)
+        caro.board[(half_h - near[1]) // sh, (half_w + near[0]) // sw] = CHESS.MIN
+        used[near] = near;   
+    
+    print("USER MOVE:")
+    print((half_h - near[1]) // sh, (half_w + near[0]) // sw)
+    
+    best_score, best_row, best_col = caro.minimax(CHESS.MAX, 0, [])
+    
+    print("BEST MOVE: " + str(best_score) + "-" + str(best_row) + "-" + str(best_col))
+    
+    """x_MAX = best_row * sw - half_w
+    y_MAX = best_col * sh - half_h"""
+   
+    x_MAX = (best_col * sw) - half_w
+    y_MAX = half_h - (best_row * sh)
+    
+    drawCircle(x_MAX, y_MAX, CHESS.MAX)
+    caro.board[best_row, best_col] = CHESS.MAX
+    used[near] = near;
+        
+    return
+
+""""""""""""""""""""""""""""""""""""""""""""""""""
+
+screen = turtle.Screen();
+screen.bgcolor("lightgreen");
+screen.title('Caro games');
+
+sk = turtle.Turtle()
+
+sk.speed(9999999999999999999999999999999999)
+
+w = 540
+h = 540
+half_w = w // 2
+half_h = h // 2
+
+n = 8
+sw = w // n
+sh = h // n
+
+used = {};
+
+point1 = (-half_w, half_h)
+point2 = (half_w, half_h)
+point3 = (half_w, -half_h)
+point4 = (-half_w, -half_h)
+
+sk.penup();
+sk.goto(point1);
+sk.pendown();
+sk.goto(point2);
+sk.goto(point3);
+sk.goto(point4);
+sk.goto(point1);
+
+sk.penup()
+
+i = 1;
+
+for i in range(n):
+    high = (point1[0] + (sw * i), point1[1])
+    sk.goto(high);
+    sk.pendown()
+    low = (point4[0] + (sw * i), point4[1])
+    sk.goto(low);
+    i = i + 1;
+    sk.penup()
+    
+for i in range(n):
+    left = (point1[0], point1[1] - (sh * i))
+    sk.goto(left);
+    sk.pendown()
+    right = (point2[0], point2[1] - (sh * i))
+    sk.goto(right);
+    i = i + 1;
+    sk.penup()
+    
+caro = CaroAI(n);
+
+turtle.onscreenclick(getPos, 1)
+turtle.mainloop()
+turtle.done()
+turtle.bye()
